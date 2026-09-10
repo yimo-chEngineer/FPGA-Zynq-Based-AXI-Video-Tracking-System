@@ -3,7 +3,7 @@
 ## Status
 **In progress.**
 - Working: [camera I2C/SCCB config]
-- In development: [basic pixel capture to FIFO]
+- In development: [basic pixel capture onto AXI-Stream]
 - Not started: [AXI DMA pipeline, DDR3 write path, ping-pong buffering, display output]
 
 ## Overview
