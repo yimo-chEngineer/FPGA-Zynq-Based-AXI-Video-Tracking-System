@@ -2,9 +2,9 @@
 
 ## Status
 **In progress.**
-- Working: [camera I2C/SCCB config]
-- In development: [basic pixel capture onto AXI-Stream]
-- Not started: [AXI DMA pipeline, DDR3 write path, ping-pong buffering, display output]
+- Working: [camera I2C/SCCB config, basic pixel capture onto AXI-Stream]
+- In development: [AXI DMA pipeline]
+- Not started: [DDR3 write path, ping-pong buffering, display output]
 
 ## Overview
 This repository contains the custom RTL and bare-metal C firmware for a real-time video tracking system developed on a Zynq-7000 SoC. The project interfaces a raw OV7670 image sensor without an AL422B asynchronous FIFO buffer, with the goal of streaming pixel data through a custom AXI4-Stream IP into DDR3 memory for processing and display output through HDMI.
