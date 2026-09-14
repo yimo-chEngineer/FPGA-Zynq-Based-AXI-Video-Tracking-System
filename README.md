@@ -1,4 +1,4 @@
-# FPGA Zynq-Based-AXI-Video-Tracking-System
+# FPGA Zynq-Based-AXI-Video-Detection-System
 
 ## Status
 **In progress.**
