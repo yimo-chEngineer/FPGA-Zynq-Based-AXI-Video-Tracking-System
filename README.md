@@ -2,9 +2,9 @@
 
 ## Status
 **In progress.**
-- Working: [camera I2C/SCCB config, basic pixel capture onto AXI-Stream]
-- In development: [AXI DMA pipeline]
-- Not started: [DDR3 write path, ping-pong buffering, display output]
+- Working: [camera I2C/SCCB config, basic pixel capture onto AXI-Stream, asynchronous FIFO VDMA pipeline]
+- In development: [DDR3 write path]
+- Not started: [ping-pong buffering, display output]
 
 ## Overview
 This repository contains the custom RTL and bare-metal C firmware for a real-time video tracking system developed on a Zynq-7000 SoC. The project interfaces a raw OV7670 image sensor without an AL422B asynchronous FIFO buffer, with the goal of streaming pixel data through a custom AXI4-Stream IP into DDR3 memory for processing and display output through HDMI.
@@ -15,7 +15,7 @@ This repository contains the custom RTL and bare-metal C firmware for a real-tim
 
 ## Architecture
 * **Hardware/Software Co-Design:** Bare-metal C code running on the ARM processor through AMD Vitis will handle I2C/SCCB register configuration, while custom pure Verilog logic handles the high-speed pixel stream.
-* **Clock Domain Crossing (CDC):** Synchronizes data across asynchronous interfaces between the camera's pixel clock, the AXI system clock, and HDMI pixel clock.
+* **Clock Domain Crossing (CDC):** Custom rtl synchronizes data across asynchronous interfaces between the camera's pixel clock, the AXI system clock, and HDMI pixel clock.
 * **High-Speed AXI Pipeline:** Video Direct Memory Access (VDMA) transfers video data between the AXI stream and the DDR3 memory without requiring the Zynq processor to copy each pixel.
 * **Ping-Pong Buffering:** A double-buffering memory architecture in DDR3, intended to eliminate screen tearing during frame reads and writes. This architecture will be used for video processing.
 
