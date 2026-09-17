@@ -1,0 +1,10 @@
+# Microphase Z7-LITE schematic, FPGA bank 34 and HDMI TX sheets.
+set_property PACKAGE_PIN U18 [get_ports TMDS_Clk_p]
+set_property PACKAGE_PIN U19 [get_ports TMDS_Clk_n]
+set_property PACKAGE_PIN V20 [get_ports {TMDS_Data_p[0]}]
+set_property PACKAGE_PIN W20 [get_ports {TMDS_Data_n[0]}]
+set_property PACKAGE_PIN T20 [get_ports {TMDS_Data_p[1]}]
+set_property PACKAGE_PIN U20 [get_ports {TMDS_Data_n[1]}]
+set_property PACKAGE_PIN N20 [get_ports {TMDS_Data_p[2]}]
+set_property PACKAGE_PIN P20 [get_ports {TMDS_Data_n[2]}]
+set_property IOSTANDARD TMDS_33 [get_ports {TMDS_Clk_p TMDS_Clk_n TMDS_Data_p[*] TMDS_Data_n[*]}]
