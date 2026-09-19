@@ -27,4 +27,3 @@ This repository contains the custom RTL and bare-metal C firmware for a real-tim
 * `vivado/`: Vivado project files, block designs, and build scripts.
 * `constraints/`: FPGA pin assignments and timing constraints (`.xdc`).
 * `docs/`: System diagrams, hardware documentation, and design notes.
-* `ip/`: Custom packaged IP used by the Vivado block design.
