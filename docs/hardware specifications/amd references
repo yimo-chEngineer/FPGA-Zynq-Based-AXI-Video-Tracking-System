@@ -1,1 +1,4 @@
+## References
 
+- [AMD/Xilinx embeddedsw — PS I²C driver](https://github.com/Xilinx/embeddedsw/blob/master/XilinxProcessorIPLib/drivers/iicps/src/xiicps.h)
+  Used the XIicPs driver for bare-metal SCCB communication with the OV7670.
