@@ -1,3 +1,7 @@
-- AMD/Xilinx embeddedsw — PS I²C driver
+- AMD/Xilinx embeddedsw — PS I2C driver
   (https://github.com/Xilinx/embeddedsw/blob/master/XilinxProcessorIPLib/drivers/iicps/src/xiicps.h)
-  Used the XIicPs driver for bare-metal SCCB communication with the OV7670.
+  Used the XIicPs driver for bare-metal SCCB communication with the OV7670 for calibration.
+
+- AMD/Xilinx embeddedsw — PS VDMA driver
+  (https://github.com/Xilinx/embeddedsw/blob/master/XilinxProcessorIPLib/drivers/axivdma/src/xaxivdma.h)
+  Used the VDMA driver for bare-metal configuration for the AXI VDMA IP.
