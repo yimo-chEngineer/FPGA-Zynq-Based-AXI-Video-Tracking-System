@@ -6,11 +6,17 @@
 #include <xstatus.h>
 #include <xaxivdma.h>
 
-#define XIICPS_BASEADDR XPAR_XIICPS_0_BASEADDR
-#define XIICPS_CLK      100000
-#define ov7670_addr     0x21
+#define XIICPS_BASEADDR     XPAR_XIICPS_0_BASEADDR
+#define XIICPS_CLK          100000
+#define ov7670_addr         0x21
 
-#define XVDMA_BASEADDR  XPAR_XAXIVDMA_0_BASEADDR
+#define XVDMA_BASEADDR      XPAR_XAXIVDMA_0_BASEADDR
+#define XVDMA_FRAMEADDR1    0x1f000000
+#define XVDMA_FRAMEADDR2    0x1f100000
+#define VDMA_FRAMECOUNT     2
+
+#define HORIZONTAL_SIZE     1280
+#define VERTICAL_SIZE       480
 
 XIicPs Iic;
 XAxiVdma Vdma;
@@ -29,6 +35,8 @@ int iic_read(XIicPs *iic_instance, u8 *MsgPtr, u8 reg_addr);
 int vdma_configuration_setup(u32 base_addr);
 int vdma_initialize(XAxiVdma *vdmainstance, XAxiVdma_Config *vdmaConfigPtr, UINTPTR base_addr);
 int vdma_setframecount(XAxiVdma *vdma_instance, u8 frame_buffer_size, u16 Direction);
+int vdma_writesetup (XAxiVdma_DmaSetup *write_config);
+int vdma_readsetup (XAxiVdma_DmaSetup *read_config);
 
 
 //****************************** MAIN ******************************//
@@ -89,13 +97,27 @@ int main(void) {
         return XST_FAILURE;
     }
 
-    //Set vdma frame count
-    if (vdma_setframecount(&Vdma, 2, XAXIVDMA_WRITE) == XST_FAILURE) {
+    //Set vdma frame count for write
+    if (vdma_setframecount(&Vdma, VDMA_FRAMECOUNT, XAXIVDMA_WRITE) == XST_FAILURE) {
         return XST_FAILURE;
     }
 
-    //Configurate vdma settings
-    XAxiVdma_DmaSetup vdma_write_setup = {.VertSizeInput = 480, .HoriSizeInput = 1280, .Stride = 1280};
+    //Set vdma frame count for write
+    if (vdma_setframecount(&Vdma, VDMA_FRAMECOUNT, XAXIVDMA_READ) == XST_FAILURE) {
+        return XST_FAILURE;
+    }
+
+    //Configurate vdma read settings
+    XAxiVdma_DmaSetup vdma_write_setup = {0};
+    if (vdma_writesetup(&vdma_write_setup) == XST_FAILURE) {
+        return XST_FAILURE;
+    }
+
+    //Configurate vdma write settings
+    XAxiVdma_DmaSetup vdma_read_setup = {0};
+    if (vdma_readsetup(&vdma_read_setup) == XST_FAILURE) {
+        return XST_FAILURE;
+    }
     
 }
 
@@ -180,7 +202,7 @@ int vdma_initialize(XAxiVdma *vdmainstance, XAxiVdma_Config *vdmaConfigPtr, UINT
         return XST_SUCCESS;
     }
     xil_printf("VDMA initialization failure\n");
-    return XST_SUCCESS;
+    return XST_FAILURE;
 }
 
 
@@ -194,4 +216,64 @@ int vdma_setframecount (XAxiVdma *vdma_instance, u8 frame_buffer_size, u16 Direc
     }
     xil_printf("VDMA set frame count failure\n");
     return XST_FAILURE;
+}
+
+
+
+//****************************** VDMA WRITE SET UP & CONFIGURATION ******************************//
+
+int vdma_writesetup (XAxiVdma_DmaSetup *write_config) {
+     write_config->VertSizeInput = VERTICAL_SIZE;
+     write_config->HoriSizeInput = HORIZONTAL_SIZE;
+     write_config->Stride = HORIZONTAL_SIZE;
+
+    write_config->FrameDelay = 0;
+    write_config->EnableCircularBuf = 1;
+    write_config->EnableSync = 1;
+    write_config->PointNum = 0;
+    write_config->EnableFrameCounter = 0;
+    write_config->FixedFrameStoreAddr = 0;
+     
+    for (int i = 0; i < VDMA_FRAMECOUNT; i++) {
+        write_config->FrameStoreStartAddr[i] = XVDMA_FRAMEADDR1 + (i * 0x100000);
+    }
+    if (XAxiVdma_DmaConfig(&Vdma, XAXIVDMA_WRITE, write_config) == XST_SUCCESS) {
+        if (XAxiVdma_DmaSetBufferAddr(&Vdma, XAXIVDMA_WRITE, write_config->FrameStoreStartAddr) == XST_SUCCESS) {
+            xil_printf("VDMA Write Configuration Success\n");
+            if (XAxiVdma_DmaStart(&Vdma, XAXIVDMA_WRITE) == XST_SUCCESS) {
+                xil_printf("VDMA Write Start Success\n");
+                return XST_SUCCESS;
+            } else {
+                xil_printf("VDMA Write Start Failure\n");
+                return XST_FAILURE;
+            }
+        } else {
+            xil_printf("VDMA Write Set Buffer Failure\n");
+            return XST_FAILURE;
+        }
+    } 
+    else {
+        xil_printf("VDMA Write Configuration Failure\n");
+        return XST_FAILURE;
+    }
+}
+
+
+
+//****************************** VDMA READ SET UP & CONFIGURATION ******************************//
+
+int vdma_readsetup (XAxiVdma_DmaSetup *read_config) {
+    if (XAxiVdma_DmaConfig(&Vdma, XAXIVDMA_READ, read_config) == XST_SUCCESS) {
+        if (XAxiVdma_DmaSetBufferAddr(&Vdma, XAXIVDMA_READ, read_config->FrameStoreStartAddr) == XST_SUCCESS) {
+            xil_printf("VDMA Read Configuration Success\n");
+            return XST_SUCCESS;
+        } else {
+            xil_printf("VDMA Read Set Buffer Failure\n");
+            return XST_FAILURE;
+        }
+    }
+    else {
+        xil_printf("VDMA Read Configuration Failure\n");
+        return XST_FAILURE;
+    }
 }
