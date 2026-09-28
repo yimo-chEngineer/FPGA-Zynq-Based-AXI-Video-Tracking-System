@@ -13,7 +13,7 @@
 #define XVDMA_BASEADDR      XPAR_XAXIVDMA_0_BASEADDR
 #define XVDMA_FRAMEADDR1    0x1f000000
 #define XVDMA_FRAMEADDR2    0x1f100000
-#define VDMA_FRAMECOUNT     2
+#define VDMA_FRAMECOUNT     3
 
 #define HORIZONTAL_SIZE     1280
 #define VERTICAL_SIZE       480
@@ -77,8 +77,8 @@ int main(void) {
     } usleep(100000);
     
     //Configurate ov7670 settings
-    u8 configuration_values[10][2] = {{0x11,0x00},{0x12,0x04},{0x40,0xd0},{0x8c,0x00},{0x17,0x16},{0x18,0x04},{0x32, 0x24},{0x19, 0x02},{0x1A, 0x7A},{0x03, 0x0A}};
-    for (int i = 0; i < 10; i++) {
+    u8 configuration_values[][2] = {{0x11,0x01},{0x6b,0x4a},{0x3a,0x04},{0x12,0x04},{0x40,0xd0},{0x8c,0x00},{0x17,0x16},{0x18,0x04},{0x32, 0x24},{0x19, 0x02},{0x1A, 0x7A},{0x03, 0x0A},{0x4f,0xb3},{0x50,0xb3},{0x51,0x00},{0x52,0x3d},{0x53,0xa7},{0x54,0xe4},{0x58,0x9e},{0x3d,0xc0}};
+    for (unsigned int i = 0; i < sizeof(configuration_values) / sizeof(configuration_values[0]); i++) {
         if(iic_write(&Iic, configuration_values[i][0], configuration_values[i][1]) == XST_FAILURE) {
             xil_printf("Register %02x calibration failure\n", configuration_values[i][0]);        
             return XST_FAILURE;
@@ -92,10 +92,12 @@ int main(void) {
         return XST_FAILURE;
     }
     
+    xil_printf("Before VDMA initialization\n");
     //Initialize vdma
     if(vdma_initialize(&Vdma, vdmaConfigPtr, XVDMA_BASEADDR) == XST_FAILURE) {
         return XST_FAILURE;
     }
+    xil_printf("After VDMA initialization\n");
 
     //Set vdma frame count for write
     if (vdma_setframecount(&Vdma, VDMA_FRAMECOUNT, XAXIVDMA_WRITE) == XST_FAILURE) {
@@ -188,7 +190,8 @@ int vdma_configuration_setup(u32 base_addr) {
     if (vdmaConfigPtr == NULL) {
         xil_printf("Configuration Address not found\n");
         return XST_FAILURE;
-    } xil_printf("VDMA initialization success\n");
+    } 
+    xil_printf("VDMA set up success\n");
     return XST_SUCCESS;
 }
 
@@ -197,6 +200,11 @@ int vdma_configuration_setup(u32 base_addr) {
 //****************************** VDMA INITIALIZATION ******************************//
 
 int vdma_initialize(XAxiVdma *vdmainstance, XAxiVdma_Config *vdmaConfigPtr, UINTPTR base_addr) {
+    xil_printf("Testing VDMA access...\r\n");
+
+    u32 test = Xil_In32(XVDMA_BASEADDR);
+
+    xil_printf("VDMA CR = 0x%08lx\r\n", test);
     if (XAxiVdma_CfgInitialize(vdmainstance, vdmaConfigPtr, base_addr) == XST_SUCCESS) {
         xil_printf("VMDA initialization success\n");
         return XST_SUCCESS;
