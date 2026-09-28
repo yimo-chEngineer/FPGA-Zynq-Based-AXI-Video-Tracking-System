@@ -15,7 +15,7 @@ This repository contains the custom RTL and bare-metal C firmware for a real-tim
 * **Vision Sensor:** OV7670 Camera
 
 ## Architecture
-* **Hardware/Software Co-Design:** Bare-metal C code running on the ARM processor through AMD Vitis handles I2C/SCCB and VDMA register configuration, while custom pure Verilog logic handles the high-speed pixel stream.
+* **Hardware/Software Co-Design:** Bare-metal C code running on the ARM processor through AMD Vitis handles I2C/SCCB, VDMA and VTC configuration, while custom pure Verilog logic handles the high-speed pixel stream and asynchronous FIFO.
 * **Clock Domain Crossing (CDC):** Custom Verilog rtl synchronizes data across asynchronous interfaces between the camera's pixel clock, the AXI system clock, and HDMI pixel clock.
 * **High-Speed AXI Pipeline:** Video Direct Memory Access (VDMA) transfers video data between the AXI stream and the DDR3 memory without requiring the Zynq processor to copy each pixel.
 * **Triple-frame Buffering:** A triple-buffering memory architecture in DDR3, intended to eliminate screen tearing during frame reads and writes.
