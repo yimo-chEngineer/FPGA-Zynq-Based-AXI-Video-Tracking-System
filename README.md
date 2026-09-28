@@ -2,8 +2,8 @@
 
 ## Status
 **In progress.**
-- Working: [camera I2C/SCCB config, basic pixel capture onto AXI-Stream, asynchronous FIFO VDMA pipeline]
-- In development: [DDR3 write path, ping-pong buffering]
+- Working: [camera I2C/SCCB config, OV7670 config, VDMA read/write config, pixel capture onto AXI-Stream, asynchronous FIFO/CDC path]
+- In development: [ping-pong buffering]
 - Not started: [Display output]
 
 ## Overview
@@ -18,7 +18,7 @@ This repository contains the custom RTL and bare-metal C firmware for a real-tim
 * **Hardware/Software Co-Design:** Bare-metal C code running on the ARM processor through AMD Vitis handles I2C/SCCB and VDMA register configuration, while custom pure Verilog logic handles the high-speed pixel stream.
 * **Clock Domain Crossing (CDC):** Custom Verilog rtl synchronizes data across asynchronous interfaces between the camera's pixel clock, the AXI system clock, and HDMI pixel clock.
 * **High-Speed AXI Pipeline:** Video Direct Memory Access (VDMA) transfers video data between the AXI stream and the DDR3 memory without requiring the Zynq processor to copy each pixel.
-* **Ping-Pong Buffering:** A double-buffering memory architecture in DDR3, intended to eliminate screen tearing during frame reads and writes. This architecture will be used for video processing.
+* **Ping-Pong Buffering:** A double-buffering memory architecture in DDR3, intended to eliminate screen tearing during frame reads and writes.
 
 ## Repository Structure
 * `rtl/`: Custom Verilog modules and top-level HDL.
