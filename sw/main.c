@@ -5,6 +5,7 @@
 #include <xil_types.h>
 #include <xstatus.h>
 #include <xaxivdma.h>
+#include <xvtc.h>
 
 #define XIICPS_BASEADDR     XPAR_XIICPS_0_BASEADDR
 #define XIICPS_CLK          100000
@@ -15,13 +16,18 @@
 #define XVDMA_FRAMEADDR2    0x1f100000
 #define VDMA_FRAMECOUNT     3
 
+#define XVTC_BASEADDR       XPAR_XVTC_0_BASEADDR
+
 #define HORIZONTAL_SIZE     1280
 #define VERTICAL_SIZE       480
 
 XIicPs Iic;
 XAxiVdma Vdma;
+XVtc Vtc;
+
 XIicPs_Config *i2cConfigPtr;
 XAxiVdma_Config *vdmaConfigPtr;
+XVtc_Config *vtcConfigPtr;
 
 
 
@@ -38,6 +44,8 @@ int vdma_setframecount(XAxiVdma *vdma_instance, u8 frame_buffer_size, u16 Direct
 int vdma_writesetup (XAxiVdma_DmaSetup *write_config);
 int vdma_readsetup (XAxiVdma_DmaSetup *read_config);
 
+int vtc_configuration_setup (u32 base_addr);
+int vtc_initialize(XVtc *InstancePtr, XVtc_Config *CfgPtr, UINTPTR EffectiveAddr);
 
 //****************************** MAIN ******************************//
 
@@ -87,7 +95,7 @@ int main(void) {
     xil_printf("OV7670 camera configuration successful!\n");
 
 
-    //Configurate vdma
+    //Set up vdma for configuration
     if (vdma_configuration_setup(XVDMA_BASEADDR) == XST_FAILURE) {
         return XST_FAILURE;
     }
@@ -121,6 +129,19 @@ int main(void) {
         return XST_FAILURE;
     }
     
+    //Set up VTC Configuration
+    if (vtc_configuration_setup (XVTC_BASEADDR) == XST_FAILURE) {
+        return XST_FAILURE;
+    }
+
+    //Initialize VTC
+    if (vtc_initialize(&Vtc, vtcConfigPtr, XVTC_BASEADDR) == XST_FAILURE) {
+        return XST_FAILURE;
+    }
+
+    //Configurate vtc settings
+    XVtc_Timing vtc_timing = {0};
+    if (vtc_configurate(&vtc_timing));
 }
 
 //****************************** I2C CONFIGURATION SETUP ******************************//
@@ -128,7 +149,7 @@ int main(void) {
 int iic_configuration_setup(u32 base_addr) {
     i2cConfigPtr = XIicPs_LookupConfig(base_addr);
     if (i2cConfigPtr == NULL) {
-        xil_printf("Configuration Address not found\n");
+        xil_printf("I2C configuration Address not found\n");
         return XST_FAILURE;
     } xil_printf("I2C configuration success\n");
     return XST_SUCCESS;
@@ -231,14 +252,15 @@ int vdma_setframecount (XAxiVdma *vdma_instance, u8 frame_buffer_size, u16 Direc
 //****************************** VDMA WRITE SET UP & CONFIGURATION ******************************//
 
 int vdma_writesetup (XAxiVdma_DmaSetup *write_config) {
-     write_config->VertSizeInput = VERTICAL_SIZE;
-     write_config->HoriSizeInput = HORIZONTAL_SIZE;
-     write_config->Stride = HORIZONTAL_SIZE;
+    write_config->VertSizeInput = VERTICAL_SIZE;
+    write_config->HoriSizeInput = HORIZONTAL_SIZE;
+    write_config->Stride = HORIZONTAL_SIZE;
 
     write_config->FrameDelay = 0;
     write_config->EnableCircularBuf = 1;
     write_config->EnableSync = 1;
     write_config->PointNum = 0;
+    write_config->GenLockRepeat = 0;
     write_config->EnableFrameCounter = 0;
     write_config->FixedFrameStoreAddr = 0;
      
@@ -271,10 +293,30 @@ int vdma_writesetup (XAxiVdma_DmaSetup *write_config) {
 //****************************** VDMA READ SET UP & CONFIGURATION ******************************//
 
 int vdma_readsetup (XAxiVdma_DmaSetup *read_config) {
+    read_config->VertSizeInput = VERTICAL_SIZE;
+    read_config->HoriSizeInput = HORIZONTAL_SIZE;
+    read_config->Stride = HORIZONTAL_SIZE;
+
+    read_config->FrameDelay = 0;
+    read_config->EnableCircularBuf = 1;
+    read_config->EnableSync = 1;
+    read_config->PointNum = 0;
+    read_config->GenLockRepeat = 1;
+    read_config->EnableFrameCounter = 0;
+    read_config->FixedFrameStoreAddr = 0;
+    for (int i = 0; i < VDMA_FRAMECOUNT; i++) {
+        read_config->FrameStoreStartAddr[i] = XVDMA_FRAMEADDR1 + (i * 0x100000);
+    }
     if (XAxiVdma_DmaConfig(&Vdma, XAXIVDMA_READ, read_config) == XST_SUCCESS) {
         if (XAxiVdma_DmaSetBufferAddr(&Vdma, XAXIVDMA_READ, read_config->FrameStoreStartAddr) == XST_SUCCESS) {
             xil_printf("VDMA Read Configuration Success\n");
-            return XST_SUCCESS;
+            if (XAxiVdma_DmaStart(&Vdma, XAXIVDMA_READ) == XST_SUCCESS) {
+                xil_printf("VDMA Read Start Success\n");
+                return XST_SUCCESS;
+            } else {
+                xil_printf("VDMA Read Start Failure\n");
+                return XST_FAILURE;
+            }
         } else {
             xil_printf("VDMA Read Set Buffer Failure\n");
             return XST_FAILURE;
@@ -284,4 +326,41 @@ int vdma_readsetup (XAxiVdma_DmaSetup *read_config) {
         xil_printf("VDMA Read Configuration Failure\n");
         return XST_FAILURE;
     }
+}
+
+
+
+//****************************** VTC CONFIGURATION SET UP ******************************//
+
+int vtc_configuration_setup (u32 base_addr) {
+    vtcConfigPtr = XVtc_LookupConfig(base_addr);
+    if (vtcConfigPtr == NULL) {
+        xil_printf("VTC configuration address not found\n");
+        return XST_FAILURE;
+    }
+    xil_printf("VTC configuration success\n");
+    return XST_SUCCESS;
+}
+
+
+
+//****************************** VTC INITIALIZATION ******************************//
+
+int vtc_initialize(XVtc *InstancePtr, XVtc_Config *CfgPtr, UINTPTR EffectiveAddr) {
+    if (XVtc_CfgInitialize(InstancePtr, CfgPtr, EffectiveAddr) == XST_SUCCESS) {
+        xil_printf("Vtc Initialization Success\n");
+        return XST_SUCCESS;
+    }
+    xil_printf("Vtc Initialization Failure\n");
+    return XST_FAILURE;
+}
+
+
+
+//****************************** VTC SETTINGS CONFIGURATION ******************************//
+
+int vtc_configurate(XVtc_Timing *timing) {
+    timing->HActiveVideo = 640;
+    timing->HFrontPorch = 80;
+    XVtc_SetGeneratorTiming(&Vtc, timing);
 }
