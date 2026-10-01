@@ -46,22 +46,23 @@ int vdma_readsetup (XAxiVdma_DmaSetup *read_config);
 
 int vtc_configuration_setup (u32 base_addr);
 int vtc_initialize(XVtc *InstancePtr, XVtc_Config *CfgPtr, UINTPTR EffectiveAddr);
+void vtc_configurate(XVtc_Timing *timing, XVtc_SourceSelect *sourceselect);
 
 //****************************** MAIN ******************************//
 
 int main(void) {
     //Configures ov7670
-    if(iic_configuration_setup(XIICPS_BASEADDR) == XST_FAILURE) {
+    if(iic_configuration_setup(XIICPS_BASEADDR) != XST_SUCCESS) {
         return XST_FAILURE;
     }
     
     //Initializes I2C
-    if (iic_initialize(&Iic, i2cConfigPtr, XIICPS_BASEADDR, XIICPS_CLK) == XST_FAILURE) {
+    if (iic_initialize(&Iic, i2cConfigPtr, XIICPS_BASEADDR, XIICPS_CLK) != XST_SUCCESS) {
         return XST_FAILURE;
     }
     
     //Reset SCCB to default
-    if (iic_write(&Iic, 0x12, 0x80) == XST_FAILURE) { 
+    if (iic_write(&Iic, 0x12, 0x80) != XST_SUCCESS) { 
         xil_printf("Reset 1 failure\n");
         return XST_FAILURE;
     } usleep(100000);
@@ -92,6 +93,10 @@ int main(void) {
             return XST_FAILURE;
         }
     }
+    if (iic_write(&Iic, 0x42, 0x08) != XST_SUCCESS) {
+        return XST_FAILURE;
+    }
+    
     xil_printf("OV7670 camera configuration successful!\n");
 
 
@@ -108,14 +113,14 @@ int main(void) {
     xil_printf("After VDMA initialization\n");
 
     //Set vdma frame count for write
-    if (vdma_setframecount(&Vdma, VDMA_FRAMECOUNT, XAXIVDMA_WRITE) == XST_FAILURE) {
-        return XST_FAILURE;
-    }
+    //if (vdma_setframecount(&Vdma, VDMA_FRAMECOUNT, XAXIVDMA_WRITE) == XST_FAILURE) {
+    //    return XST_FAILURE;
+    //}
 
-    //Set vdma frame count for write
-    if (vdma_setframecount(&Vdma, VDMA_FRAMECOUNT, XAXIVDMA_READ) == XST_FAILURE) {
-        return XST_FAILURE;
-    }
+    //Set vdma frame count for read
+    //if (vdma_setframecount(&Vdma, VDMA_FRAMECOUNT, XAXIVDMA_READ) == XST_FAILURE) {
+    //    return XST_FAILURE;
+    //}
 
     //Configurate vdma read settings
     XAxiVdma_DmaSetup vdma_write_setup = {0};
@@ -141,7 +146,10 @@ int main(void) {
 
     //Configurate vtc settings
     XVtc_Timing vtc_timing = {0};
-    if (vtc_configurate(&vtc_timing));
+    XVtc_SourceSelect vtc_sourceselect = {0};
+    vtc_configurate(&vtc_timing, &vtc_sourceselect);
+
+    while (1);
 }
 
 //****************************** I2C CONFIGURATION SETUP ******************************//
@@ -256,13 +264,13 @@ int vdma_writesetup (XAxiVdma_DmaSetup *write_config) {
     write_config->HoriSizeInput = HORIZONTAL_SIZE;
     write_config->Stride = HORIZONTAL_SIZE;
 
-    write_config->FrameDelay = 0;
-    write_config->EnableCircularBuf = 1;
-    write_config->EnableSync = 1;
-    write_config->PointNum = 0;
-    write_config->GenLockRepeat = 0;
-    write_config->EnableFrameCounter = 0;
-    write_config->FixedFrameStoreAddr = 0;
+    write_config->FrameDelay            = 0;
+    write_config->EnableCircularBuf     = 1;
+    write_config->EnableSync            = 1;
+    write_config->PointNum              = 0;
+    write_config->GenLockRepeat         = 0;
+    write_config->EnableFrameCounter    = 0;
+    write_config->FixedFrameStoreAddr   = 0;
      
     for (int i = 0; i < VDMA_FRAMECOUNT; i++) {
         write_config->FrameStoreStartAddr[i] = XVDMA_FRAMEADDR1 + (i * 0x100000);
@@ -293,17 +301,17 @@ int vdma_writesetup (XAxiVdma_DmaSetup *write_config) {
 //****************************** VDMA READ SET UP & CONFIGURATION ******************************//
 
 int vdma_readsetup (XAxiVdma_DmaSetup *read_config) {
-    read_config->VertSizeInput = VERTICAL_SIZE;
-    read_config->HoriSizeInput = HORIZONTAL_SIZE;
-    read_config->Stride = HORIZONTAL_SIZE;
+    read_config->VertSizeInput  = VERTICAL_SIZE;
+    read_config->HoriSizeInput  = HORIZONTAL_SIZE;
+    read_config->Stride         = HORIZONTAL_SIZE;
 
-    read_config->FrameDelay = 0;
-    read_config->EnableCircularBuf = 1;
-    read_config->EnableSync = 1;
-    read_config->PointNum = 0;
-    read_config->GenLockRepeat = 1;
-    read_config->EnableFrameCounter = 0;
-    read_config->FixedFrameStoreAddr = 0;
+    read_config->FrameDelay             = 0;
+    read_config->EnableCircularBuf      = 1;
+    read_config->EnableSync             = 1;
+    read_config->PointNum               = 0;
+    read_config->GenLockRepeat          = 1;
+    read_config->EnableFrameCounter     = 0;
+    read_config->FixedFrameStoreAddr    = 0;
     for (int i = 0; i < VDMA_FRAMECOUNT; i++) {
         read_config->FrameStoreStartAddr[i] = XVDMA_FRAMEADDR1 + (i * 0x100000);
     }
@@ -359,8 +367,48 @@ int vtc_initialize(XVtc *InstancePtr, XVtc_Config *CfgPtr, UINTPTR EffectiveAddr
 
 //****************************** VTC SETTINGS CONFIGURATION ******************************//
 
-int vtc_configurate(XVtc_Timing *timing) {
-    timing->HActiveVideo = 640;
-    timing->HFrontPorch = 80;
+void vtc_configurate(XVtc_Timing *timing, XVtc_SourceSelect *sourceselect) {
+    timing->HActiveVideo    = 640;
+    timing->HFrontPorch     = 16;
+    timing->HSyncWidth      = 96;
+    timing->HBackPorch      = 48;
+    timing->HSyncPolarity   = 0;
+
+    timing->VActiveVideo    = 480;    
+    timing->V0FrontPorch    = 10;
+    timing->V0SyncWidth     = 2;
+    timing->V0BackPorch     = 33;
+    timing->VSyncPolarity   = 0;
+
+    timing->Interlaced      = 0;
+    
+    
+    sourceselect->FieldIdPolSrc         = 1;
+    sourceselect->ActiveChromaPolSrc    = 1;
+    sourceselect->ActiveVideoPolSrc     = 1;
+    sourceselect->HSyncPolSrc           = 1;
+    sourceselect->VSyncPolSrc           = 1;
+    sourceselect->HBlankPolSrc          = 1;
+    sourceselect->VBlankPolSrc          = 1;
+    
+    sourceselect->VChromaSrc            = 1;
+    sourceselect->VActiveSrc            = 1;
+    sourceselect->VBackPorchSrc         = 1;
+    sourceselect->VSyncSrc              = 1;
+    sourceselect->VFrontPorchSrc        = 1;
+    sourceselect->VTotalSrc             = 1;
+    
+    sourceselect->HActiveSrc            = 1;
+    sourceselect->HBackPorchSrc         = 1;
+    sourceselect->HSyncSrc              = 1;
+    sourceselect->HFrontPorchSrc        = 1;
+    sourceselect->HTotalSrc             = 1;
+    
+    sourceselect->InterlacedMode        = 0;   
+    
     XVtc_SetGeneratorTiming(&Vtc, timing);
+    XVtc_SetSource(&Vtc, sourceselect);
+    XVtc_RegUpdateEnable(&Vtc);
+    XVtc_EnableGenerator(&Vtc);
+
 }
